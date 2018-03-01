@@ -1,0 +1,119 @@
+EXPERIMENT I GEE CODE AND INTERPRETATION
+
+
+>data<-read.table("experiment1.txt", header=T)
+>attach(data)
+
+%%%%%%%%%%%%%%install package "geepack"
+
+>library(geepack)
+
+>trial1<-factor(data$trial)
+>age1<-factor(data$age)
+
+>fit1 <- geeglm(response ~ age1*trial1, data = data, id = id, family = binomial(link=probit), corstr = "exchangeable",scale.fix=T)
+>summary(fit1)
+
+%%%%%%%%%%%%%%%
+Call:
+geeglm(formula = response ~ age1 * trial1, family = binomial(link = probit), 
+    data = data, id = id, corstr = "exchangeable", scale.fix = T)
+
+ Coefficients:
+              Estimate Std.err   Wald Pr(>|W|)    
+(Intercept)    -1.1283  0.3384 11.115 0.000856 ***
+age11           0.4538  0.4381  1.073 0.300270    
+trial11         1.4173  0.4322 10.754 0.001040 ** 
+age11:trial11  -0.5855  0.5567  1.106 0.292881    
+---
+
+%%%%%%%%%%%%%%% INTERPRETATION OF THE COEFFICIENTS
+
+With the probit link, the intercept shows Z score for proportion of trials infants reached back in the reference category (20-month-olds on referent trials). 
+Area to the left of Z = -1.1283 = 0.13 
+> pnorm(-1.1283,0,1)
+[1] 0.1296 which is within rounding error from the observed proportion of referent trials 20-month-olds reached back on (4/31 = 0.129). 
+The Wald test gives significance of difference between this proportion and 0.5 (Z score of 0). 
+This suggests 20-month-old infants reached back on referent trials significantly less than 50%.
+
+The regression coefficient for age (0.4538) gives increase in Z-score between 20-month-olds' reaching back on referent trials (the reference category)
+and 16-month-olds' reaching back on referent trials (age comparison holding trial type constant). This corresponds to the observed difference in proportion 
+of trials infants in both age groups reached back: 
+pnorm(-1.1283 + 0.4538,0,1)
+[1] 0.25
+Wald test suggests this increase is not significant (p-value = 0.30)
+
+The coefficient for trial (1.4173) reflects change in Z-score between 20-month-olds' reaching back on referent and non-referent trials:
+> pnorm(-1.1283+1.4173,0,1)
+[1] 0.614  which is within rounding error from the observed proportion of non-referent trials 20-month-olds reached back on (0.613).
+The Wald trest suggests this is a significant increase (p-value = 0.001)
+
+The coefficient for the interaction term reflects comparison of difference between reaching back on referent and non-referent trials in 20-month-olds
+to that in 16-month-olds (a difference of differences).
+
+%%%%%%%%%%%%%%%%%%%%%
+
+To get confidence intervals we used the esticon function (package DoBy).
+library(DoBy)
+
+est<-esticon(fit1,diag(4))
+est
+
+
+ beta0 Estimate Std.Error X2.value DF Pr(>|X^2|)   Lower   Upper
+1     0  -1.1283    0.3384   11.115  1  0.0008565 -1.7915 -0.4650
+2     0   0.4538    0.4381    1.073  1  0.3002704 -0.4048  1.3123
+3     0   1.4173    0.4322   10.754  1  0.0010405  0.5702  2.2644
+4     0  -0.5855    0.5567    1.106  1  0.2928807 -1.6766  0.5055
+
+%%%%%%%%%%%%%%%%%%
+
+To assess the significance of difference of 16-month-olds' performance on referent and non-referent trials we changed the reference category 
+from 20-month-olds and referent trials to 16-month-olds and referent trials and reran the analysis.
+
+>contrasts(age1) <- contr.treatment(2, base = 2) 
+>fit2 <- geeglm(response ~ age1*trial1, data = data, id = id, family = binomial(link=probit), corstr = "exchangeable",scale.fix=T)
+>summary(fit2)
+
+
+Call:
+geeglm(formula = response ~ age1 * trial1, family = binomial(link = probit), 
+    data = data, id = id, corstr = "exchangeable", scale.fix = T)
+
+ Coefficients:
+              Estimate Std.err Wald Pr(>|W|)  
+(Intercept)     -0.674   0.278 5.88    0.015 *
+age11           -0.454   0.438 1.07    0.300  
+trial11          0.832   0.351 5.62    0.018 *
+age11:trial11    0.586   0.557 1.11    0.293  
+---
+
+
+%%%%%%%%%%%%%%% INTERPRETATION OF THE COEFFICIENTS
+
+The intercept shows Z score for proportion of referent trials 16-month-olds reached back on.
+> pnorm(-.674,0,1)
+[1] 0.25 
+
+The coefficient for age is the same as in the previous analysis because it reflects change in Z-score between 16- and 20-month-old infants' performance 
+on referent trials: 
+> pnorm(-.674-.454,0,1)
+[1] 0.13 (=proportion of referent trials 20-month-olds reached back on)
+
+The coefficient for trial reflects change in Z-score between 16-month-olds' performance on referent and non-referent trials:
+> pnorm(-.674+.832,0,1)
+[1] 0.563  (=proportion of non-referent trials 16-month-olds reached back on).
+
+The coefficient for the interaction is the same as above.
+
+%%%%%%%%%%%%%%%%
+To get confidence intervals:
+
+> est<-esticon(fit2,diag(4))
+> est
+  beta0 Estimate Std.Error X2.value DF Pr(>|X^2|)  Lower  Upper
+1     0   -0.674     0.278     5.88  1     0.0153 -1.220 -0.129
+2     0   -0.454     0.438     1.07  1     0.3003 -1.312  0.405
+3     0    0.832     0.351     5.62  1     0.0177  0.144  1.519
+4     0    0.586     0.557     1.11  1     0.2929 -0.506  1.677
+
